@@ -1,0 +1,8 @@
+{
+  "name": "@linkbox/api",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@linkbox/shared": "*"
+  }
+}

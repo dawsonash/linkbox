@@ -1,0 +1,8 @@
+{
+  "name": "@linkbox/cli",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@linkbox/shared": "*"
+  }
+}

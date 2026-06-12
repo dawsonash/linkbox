@@ -1,0 +1,16 @@
+{
+  "name": "linkbox",
+  "private": true,
+  "type": "module",
+  "workspaces": ["shared", "api", "cli"],
+  "scripts": {
+    "api": "tsx api/src/server.ts",
+    "cli": "tsx cli/src/main.ts",
+    "test": "tsx --test api/src/*.test.ts cli/src/*.test.ts shared/src/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
