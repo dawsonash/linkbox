@@ -52,6 +52,22 @@ test('GET /links returns the stored links as JSON', async () => {
   });
 });
 
+test('GET /links filters by tag and q query params', async () => {
+  await withServer(async (base, store) => {
+    await store.add({ url: 'https://rust.test', title: 'Rust', tags: ['rust', 'read'] });
+    await store.add({ url: 'https://ts.test', title: 'TypeScript', tags: ['ts', 'read'] });
+
+    const byTag = (await (await fetch(`${base}/links?tag=rust`)).json()) as Link[];
+    assert.deepEqual(byTag.map((l) => l.title), ['Rust']);
+
+    const byQ = (await (await fetch(`${base}/links?q=script`)).json()) as Link[];
+    assert.deepEqual(byQ.map((l) => l.title), ['TypeScript']);
+
+    const combined = (await (await fetch(`${base}/links?tag=read&q=rust`)).json()) as Link[];
+    assert.deepEqual(combined.map((l) => l.title), ['Rust']);
+  });
+});
+
 test('POST /links uses the provided title without fetching', async () => {
   await withServer(
     async (base) => {

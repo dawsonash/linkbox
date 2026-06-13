@@ -2,10 +2,11 @@ import type { Link } from '@linkbox/shared';
 
 const USAGE = `usage: lb <command>
 
-  add <url> [--tag x --tag y]   save a link (title is fetched by the api)
-  list                          list saved links as a table
-  rm <id>                       remove a link by id
-  help                          show this message`;
+  add <url> [--tag x --tag y]       save a link (title is fetched by the api)
+  list                              list saved links as a table
+  search <query> [--tag x ...]      find links by text and/or tags
+  rm <id>                           remove a link by id
+  help                              show this message`;
 
 export interface Deps {
   fetch: typeof fetch;
@@ -26,6 +27,8 @@ export async function run(argv: string[], deps: Deps): Promise<number> {
       return add(rest, deps);
     case 'list':
       return list(deps);
+    case 'search':
+      return search(rest, deps);
     case 'rm':
       return remove(rest, deps);
     default:
@@ -35,8 +38,9 @@ export async function run(argv: string[], deps: Deps): Promise<number> {
   }
 }
 
-async function add(args: string[], deps: Deps): Promise<number> {
-  let url: string | undefined;
+/** Splits args into the first positional value and repeatable --tag / --tag= values. */
+function parseArgs(args: string[]): { positional?: string; tags: string[] } {
+  let positional: string | undefined;
   const tags: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -45,10 +49,15 @@ async function add(args: string[], deps: Deps): Promise<number> {
       if (value) tags.push(value);
     } else if (arg.startsWith('--tag=')) {
       tags.push(arg.slice('--tag='.length));
-    } else if (!url) {
-      url = arg;
+    } else if (positional === undefined) {
+      positional = arg;
     }
   }
+  return { positional, tags };
+}
+
+async function add(args: string[], deps: Deps): Promise<number> {
+  const { positional: url, tags } = parseArgs(args);
 
   if (!url) {
     deps.error('usage: lb add <url> [--tag x --tag y]');
@@ -80,6 +89,33 @@ async function list(deps: Deps): Promise<number> {
   const links = (await res.json()) as Link[];
   if (links.length === 0) {
     deps.log('no links yet — add one with `lb add <url>`');
+    return 0;
+  }
+
+  deps.log(formatTable(links));
+  return 0;
+}
+
+async function search(args: string[], deps: Deps): Promise<number> {
+  const { positional: query, tags } = parseArgs(args);
+  if (!query && tags.length === 0) {
+    deps.error('usage: lb search <query> [--tag x --tag y]');
+    return 1;
+  }
+
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  for (const tag of tags) params.append('tag', tag);
+
+  const res = await deps.fetch(`${deps.apiBase}/links?${params.toString()}`);
+  if (!res.ok) {
+    deps.error(`search failed: ${res.status} ${res.statusText}`.trim());
+    return 1;
+  }
+
+  const links = (await res.json()) as Link[];
+  if (links.length === 0) {
+    deps.log('no matches');
     return 0;
   }
 

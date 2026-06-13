@@ -142,3 +142,38 @@ test('formatTable column widths fit the widest cell', () => {
   const [header] = table.split('\n');
   assert.ok(header.indexOf('TITLE') >= 'short'.length);
 });
+
+test('search sends q and repeated tag params and renders matches', async () => {
+  const h = harness([json([link({ id: 'm1', title: 'Match' })])]);
+  const code = await run(['search', 'match', '--tag', 'work', '--tag', 'read'], h.deps);
+  assert.equal(code, 0);
+  const url = new URL(h.calls[0].url);
+  assert.equal(url.pathname, '/links');
+  assert.equal(url.searchParams.get('q'), 'match');
+  assert.deepEqual(url.searchParams.getAll('tag'), ['work', 'read']);
+  assert.match(h.out.join('\n'), /m1\s+Match/);
+});
+
+test('search works with --tag only (no query)', async () => {
+  const h = harness([json([link({ id: 'm1' })])]);
+  const code = await run(['search', '--tag', 'work'], h.deps);
+  assert.equal(code, 0);
+  const url = new URL(h.calls[0].url);
+  assert.equal(url.searchParams.get('q'), null);
+  assert.deepEqual(url.searchParams.getAll('tag'), ['work']);
+});
+
+test('search prints "no matches" on an empty result', async () => {
+  const h = harness([json([])]);
+  const code = await run(['search', 'nothing'], h.deps);
+  assert.equal(code, 0);
+  assert.match(h.out.join('\n'), /no matches/);
+});
+
+test('search without a query or tag errors without calling the api', async () => {
+  const h = harness([]);
+  const code = await run(['search'], h.deps);
+  assert.equal(code, 1);
+  assert.equal(h.calls.length, 0);
+  assert.match(h.err.join('\n'), /usage: lb search/);
+});

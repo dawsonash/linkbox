@@ -2,6 +2,7 @@ import http from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { LinkStore } from '@linkbox/shared';
 import { JsonFileStore } from './store.ts';
+import { filterLinks } from './search.ts';
 
 const PORT = Number(process.env.PORT ?? 4321);
 const MAX_BODY_BYTES = 1_000_000;
@@ -37,7 +38,8 @@ async function handle(
   store: LinkStore,
   fetchTitle: TitleFetcher,
 ): Promise<void> {
-  const { pathname } = new URL(req.url ?? '/', 'http://localhost');
+  const url = new URL(req.url ?? '/', 'http://localhost');
+  const { pathname } = url;
   const method = req.method ?? 'GET';
 
   if (method === 'GET' && pathname === '/health') {
@@ -45,7 +47,10 @@ async function handle(
   }
 
   if (method === 'GET' && pathname === '/links') {
-    return send(res, 200, await store.list());
+    const links = await store.list();
+    const tags = url.searchParams.getAll('tag');
+    const q = url.searchParams.get('q') ?? undefined;
+    return send(res, 200, filterLinks(links, { tags, q }));
   }
 
   if (method === 'POST' && pathname === '/links') {
