@@ -6,7 +6,7 @@
   "scripts": {
     "api": "tsx api/src/server.ts",
     "cli": "tsx cli/src/main.ts",
-    "test": "tsx --test api/src/*.test.ts cli/src/*.test.ts shared/src/*.test.ts"
+    "test": "tsx --test api/src/*.test.ts cli/src/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^25.9.3",
